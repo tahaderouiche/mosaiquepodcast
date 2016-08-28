@@ -25,8 +25,8 @@ from oauth2client.client import OAuth2WebServerFlow
 
 # For this example, the client id and client secret are command-line arguments.
 
-client_id = "313378531112-rn9od2pke2jat82sth4kfrvnk0nfls8b.apps.googleusercontent.com"
-client_secret = "ANPpiKx_Cfy_J9Y0xQbIz5pD"
+# client_id = ""
+# client_secret = ""
 
 # The scope URL for read/write access to a user's calendar data
 scope = 'https://www.googleapis.com/auth/calendar'
