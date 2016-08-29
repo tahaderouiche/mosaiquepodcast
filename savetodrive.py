@@ -1,11 +1,17 @@
 from __future__ import print_function
+
 import httplib2
 import os
+from googleapiclient.http import MediaFileUpload
+# import logging
 
 from apiclient import discovery
 import oauth2client
 from oauth2client import client
 from oauth2client import tools
+
+# logger = logging.getLogger()
+# logger.setLevel(logging.INFO)
 
 try:
     import argparse
@@ -15,7 +21,7 @@ except ImportError:
 
 # If modifying these scopes, delete your previously saved credentials
 # at ~/.credentials/drive-python-quickstart.json
-SCOPES = 'https://www.googleapis.com/auth/drive.metadata.readonly'
+SCOPES = 'https://www.googleapis.com/auth/drive'
 CLIENT_SECRET_FILE = 'client_secret.json'
 APPLICATION_NAME = 'Mosaique Podcast'
 
@@ -29,12 +35,12 @@ def get_credentials():
     Returns:
         Credentials, the obtained credential.
     """
-    home_dir = os.path.expanduser('~')
+    home_dir = os.path.expanduser('~/Work/Python/mosaiquepodcast/')
     credential_dir = os.path.join(home_dir, '.credentials')
     if not os.path.exists(credential_dir):
         os.makedirs(credential_dir)
     credential_path = os.path.join(credential_dir,
-                                   'drive-python-quickstart.json')
+                                   'drive-python.json')
 
     store = oauth2client.file.Storage(credential_path)
     credentials = store.get()
@@ -49,25 +55,26 @@ def get_credentials():
     return credentials
 
 def main():
-    """Shows basic usage of the Google Drive API.
-
-    Creates a Google Drive API service object and outputs the names and IDs
-    for up to 10 files.
+    """This will upload a file to Google Drive
     """
     credentials = get_credentials()
     http = credentials.authorize(httplib2.Http())
     service = discovery.build('drive', 'v3', http=http)
+    file_metadata = {
+        'name': 'blogger.png'
+    }
+    media = MediaFileUpload('blogger.png',
+                            mimetype='image/png',
+                            resumable=True)
+    request = service.files().create(body=file_metadata, media_body=media)
+    response = None
+    while response is None:
+        status, response = request.next_chunk()
+        if status:
+            print ("Uploaded %d%%." % int(status.progress() * 100))
+    print ("Upload Complete!")
+    print ("File id: %s" % response.get('id'))
 
-    #
-    # results = service.files().list(
-    #     pageSize=10,fields="nextPageToken, files(id, name)").execute()
-    # items = results.get('files', [])
-    # if not items:
-    #     print('No files found.')
-    # else:
-    #     print('Files:')
-    #     for item in items:
-    #         print('{0} ({1})'.format(item['name'], item['id']))
-    #
+
 if __name__ == '__main__':
     main()
