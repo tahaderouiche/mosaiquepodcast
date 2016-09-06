@@ -3,15 +3,11 @@ from __future__ import print_function
 import httplib2
 import os
 from googleapiclient.http import MediaFileUpload
-# import logging
 
 from apiclient import discovery
 import oauth2client
 from oauth2client import client
 from oauth2client import tools
-
-# logger = logging.getLogger()
-# logger.setLevel(logging.INFO)
 
 try:
     import argparse
@@ -19,11 +15,10 @@ try:
 except ImportError:
     flags = None
 
-# If modifying these scopes, delete your previously saved credentials
-# at ~/.credentials/drive-python-quickstart.json
 SCOPES = 'https://www.googleapis.com/auth/drive'
 CLIENT_SECRET_FILE = 'client_secret.json'
 APPLICATION_NAME = 'Mosaique Podcast'
+DOWNLOAD_FOLDER = '/Users/tahaderouiche/Downloads/mosaiquefmpodcast/'
 
 
 def get_credentials():
@@ -49,10 +44,24 @@ def get_credentials():
         flow.user_agent = APPLICATION_NAME
         if flags:
             credentials = tools.run_flow(flow, store, flags)
-        else: # Needed only for compatibility with Python 2.6
+        else:  # Needed only for compatibility with Python 2.6
             credentials = tools.run(flow, store)
         print('Storing credentials to ' + credential_path)
     return credentials
+
+
+def create_folder(service):
+    listfolders = service.files().list(q="mimeType='application/vnd.google-apps.folder'"
+                                         "and name='Mosaique Podcasts'and trashed=false").execute().get('files', [])
+    if listfolders:
+        return listfolders[0].get('id')
+    else:
+        file_metadata = {
+            'name': 'Mosaique Podcasts',
+            'mimeType': 'application/vnd.google-apps.folder'
+        }
+        return service.files().create(body=file_metadata, fields='id').execute().get('id')
+
 
 def main():
     """This will upload a file to Google Drive
@@ -60,20 +69,25 @@ def main():
     credentials = get_credentials()
     http = credentials.authorize(httplib2.Http())
     service = discovery.build('drive', 'v3', http=http)
-    file_metadata = {
-        'name': 'blogger.png'
-    }
-    media = MediaFileUpload('blogger.png',
-                            mimetype='image/png',
-                            resumable=True)
-    request = service.files().create(body=file_metadata, media_body=media)
-    response = None
-    while response is None:
-        status, response = request.next_chunk()
-        if status:
-            print ("Uploaded %d%%." % int(status.progress() * 100))
-    print ("Upload Complete!")
-    print ("File id: %s" % response.get('id'))
+    folder_id = create_folder(service)
+
+    for mp3_filename in os.listdir(DOWNLOAD_FOLDER):
+        if mp3_filename.endswith(".mp3"):
+            print (DOWNLOAD_FOLDER+mp3_filename)
+            file_metadata = {
+                'name': mp3_filename,
+                'parents': [folder_id]
+            }
+            media = MediaFileUpload(DOWNLOAD_FOLDER+mp3_filename,
+                                    mimetype='audio/mp3',
+                                    resumable=True)
+            request = service.files().create(body=file_metadata, media_body=media)
+            response = None
+            while response is None:
+                status, response = request.next_chunk()
+                if status:
+                    print ("Uploaded %d%%." % int(status.progress() * 100))
+            print ("Upload Complete!")
 
 
 if __name__ == '__main__':
